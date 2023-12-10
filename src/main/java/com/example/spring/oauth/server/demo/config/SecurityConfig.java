@@ -1,5 +1,10 @@
 package com.example.spring.oauth.server.demo.config;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.UUID;
 
 import org.springframework.context.annotation.Bean;
@@ -7,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,6 +29,12 @@ import org.springframework.security.oauth2.server.authorization.settings.Authori
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 
 @Configuration
 public class SecurityConfig {
@@ -97,5 +107,24 @@ public class SecurityConfig {
 				.builder()
 				.build();
 				
+	}
+	
+	@Bean
+	public JWKSource<SecurityContext> jwkSource() throws NoSuchAlgorithmException {
+		KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
+		keyPairGen.initialize(2048);
+		
+		KeyPair keyPair = keyPairGen.generateKeyPair();
+		
+		RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+		RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+		
+		RSAKey key = new RSAKey.Builder(publicKey)
+			.privateKey(privateKey)
+			.keyID(UUID.randomUUID().toString())
+			.build();
+		
+		JWKSet jwk = new JWKSet(key);
+		return new ImmutableJWKSet<>(jwk);
 	}
 }
